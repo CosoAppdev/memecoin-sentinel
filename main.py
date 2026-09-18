@@ -114,6 +114,10 @@ def process_solana_pairs(seen_pairs):
 
 def bot_loop():
     print("MemeSentinel Bot avviato su Solana...")
+    
+    # --- MESSAGGIO DI TEST ALL'AVVIO ---
+    send_telegram_alert("🟢 *MemeSentinel Bot ONLINE!* \n\nIl server è avviato ed è in ascolto sui nuovi lanci Solana.")
+    
     seen_pairs = set()
     while True:
         process_solana_pairs(seen_pairs)
