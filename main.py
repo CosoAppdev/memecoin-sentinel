@@ -1,5 +1,6 @@
 import os
 import requests
+import json
 import time
 import threading
 from flask import Flask
@@ -26,22 +27,53 @@ MIN_LIQUIDITY_USD = 5000.0
 MAX_SINGLE_HOLDER_PCT = 3.5
 MIN_VOLUME_MCAP_RATIO = 0.8
 
-def send_telegram_alert(message):
+def send_telegram_alert(message, token_address=None):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
         print("Errore: Credenziali Telegram mancanti nelle Environment Variables!")
         return
-    
+
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    
     payload = {
         "chat_id": TELEGRAM_CHAT_ID,
         "text": message,
         "parse_mode": "Markdown",
-        "disable_web_page_preview": True
+        "disable_web_page_preview": False
     }
+
+    if token_address:
+        reply_markup = {
+            "inline_keyboard": [
+                [
+                    {
+                        "text": "⚡ Compra su Trojan", 
+                        "url": f"https://t.me/solana_trojanbot?start=r-socio-{token_address}"
+                    },
+                    {
+                        "text": "🪐 Compra su Jupiter", 
+                        "url": f"https://jup.ag/swap/SOL-{token_address}"
+                    }
+                ],
+                [
+                    {
+                        "text": "📊 DEXScreener", 
+                        "url": f"https://dexscreener.com/solana/{token_address}"
+                    },
+                    {
+                        "text": "🛡️ RugCheck", 
+                        "url": f"https://rugcheck.xyz/tokens/{token_address}"
+                    }
+                ]
+            ]
+        }
+        payload["reply_markup"] = json.dumps(reply_markup)
+
     try:
-        requests.post(url, json=payload, timeout=10)
+        response = requests.post(url, json=payload)
+        if response.status_code != 200:
+            print(f"Errore invio Telegram: {response.text}")
     except Exception as e:
-        print(f"Errore Telegram: {e}")
+        print(f"Eccezione durante l'invio su Telegram: {e}")
 
 def check_rugcheck_safety(mint_address):
     try:
@@ -107,7 +139,7 @@ def process_solana_pairs(seen_pairs):
                 f"🔗 [Apri su DEXScreener]({url_dex})\n"
                 f"🛡️ [Verifica su RugCheck](https://rugcheck.xyz/tokens/{mint_address})"
             )
-            send_telegram_alert(msg)
+            send_telegram_alert(msg, token_address=mint_address)
 
     except Exception as e:
         print(f"Errore ciclo di scansione: {e}")
